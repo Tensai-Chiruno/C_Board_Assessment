@@ -1,0 +1,42 @@
+# 构建产物
+build/
+cmake-build-*/
+
+# 编译中间文件
+*.o
+*.obj
+*.a
+*.elf
+*.hex
+*.bin
+*.map
+*.su
+*.d
+
+# 编辑器
+.vscode/
+.idea/
+
+# 系统文件
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 调试器会话文件
+*.jdebug.user
+
+# Ozone 工程脚本运行时会生成的调试输出（每次打开工程都会重新生成）
+ozone_console.log
+ozone_datasampling.csv
+
+# PC 端测试的编译产物（源码保留）
+_test/*.exe
+_test/*.obj
+_test/*.pdb
+_test/*.ilk
+
+# 考核参考资料：体积较大（含官方 PDF 手册），需要的话从群里重新获取
+_ref/
+
+# 交付用的文档（不入库）
+*.docx

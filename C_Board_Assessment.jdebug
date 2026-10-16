@@ -1,0 +1,103 @@
+/*********************************************************************
+*                 (c) SEGGER Microcontroller GmbH                    *
+*                      The Embedded Experts                          *
+*                         www.segger.com                             *
+**********************************************************************
+
+File          : C_Board_Assessment.jdebug
+Ozone Version : V3.26
+
+本工程在 OnProjectLoad 里配好了数据采样，Timeline 的 Data 面板直接显示固件里
+dbgTarget（目标值）和 dbgActual（实际值）两条曲线。打开后按 F5 即可。
+*/
+
+void OnProjectLoad (void) {
+  //
+  // Dialog-generated settings
+  //
+  Project.AddPathSubstitute ("C:/Users/13588/Desktop/learning/programing/STM32/C_Board_Assessment", "$(ProjectDir)");
+  Project.AddPathSubstitute ("c:/users/13588/desktop/learning/programing/stm32/c_board_assessment", "$(ProjectDir)");
+  Project.SetDevice ("STM32F407IG");
+  Project.SetHostIF ("USB", "69404853");
+  Project.SetTargetIF ("SWD");
+  Project.SetTIFSpeed ("4000 kHz");
+  Project.AddSvdFile ("$(InstallDir)/Config/Peripherals/STM32F407IG.svd");
+  //
+  // User settings
+  //
+  File.Open ("$(ProjectDir)/build/C_Board_Assessment.elf");
+  Project.SetConsoleLogFile ("$(ProjectDir)/ozone_console.log");
+
+  //
+  // 数据采样：Timeline 的 Data 面板用的就是这份表达式列表。
+  // 注意这些动作必须单独成句，写进表达式里会报 Error (83)。
+  //
+  Edit.SysVar (VAR_HSS_SPEED, 1000);          // 1 kHz，与固件控制周期一致
+
+  Window.Clear ("Data Sampling");             // 先清空，避免反复打开时重复添加
+  Window.Add ("Data Sampling", "dbgTarget");
+  Window.Add ("Data Sampling", "dbgActual");
+  Window.Show ("Timeline");
+  Window.Export ("Data Sampling", "$(ProjectDir)/ozone_datasampling.csv");
+}
+
+/*********************************************************************
+*
+*       TargetReset / _SetupTarget
+*
+* Function description
+*   和 Ozone 默认生成的一样：复位后把 SP / PC 设成向量表里的值。
+*
+**********************************************************************
+*/
+void AfterTargetReset (void) {
+  _SetupTarget();
+}
+
+void AfterTargetDownload (void) {
+  _SetupTarget();
+}
+
+/*********************************************************************
+*
+*       BeforeTargetResume
+*
+* Function description
+*   每次"继续运行"之前把采样数据清空，
+*   这样 Timeline 上看到的永远是本次运行以来的波形，不会混进上一次的。
+*
+**********************************************************************
+*/
+void BeforeTargetResume (void) {
+  Timeline.Reset();
+}
+
+/*********************************************************************
+*
+*       _SetupTarget
+*
+**********************************************************************
+*/
+void _SetupTarget(void) {
+  unsigned int SP;
+  unsigned int PC;
+  unsigned int VectorTableAddr;
+
+  VectorTableAddr = Elf.GetBaseAddr();
+  //
+  // Set up initial stack pointer
+  //
+  SP = Target.ReadU32(VectorTableAddr);
+  if (SP != 0xFFFFFFFF) {
+    Target.SetReg("SP", SP);
+  }
+  //
+  // Set up entry point PC
+  //
+  PC = Elf.GetEntryPointPC();
+  if (PC != 0xFFFFFFFF) {
+    Target.SetReg("PC", PC);
+  } else {
+    Util.Error("Project script error: failed to set up entry point PC", 1);
+  }
+}
